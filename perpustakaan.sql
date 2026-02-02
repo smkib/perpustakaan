@@ -41,18 +41,6 @@ CREATE TABLE `buku` (
 -- Dumping data for table `buku`
 --
 
-INSERT INTO `buku` (`id_buku`, `judul`, `pengarang`, `penerbit`, `tahun`, `stok`) VALUES
-(1, 'Pemrograman Dasar PHP', 'Budi Santoso', 'Informatika', 2021, 10),
-(2, 'Dasar-Dasar MySQL', 'Andi Wijaya', 'Elex Media Komputindo', 2020, 8),
-(3, 'Rekayasa Perangkat Lunak', 'Rosa A.S.', 'Informatika', 2019, 12),
-(4, 'Pemrograman Web dengan Bootstrap', 'Dian Pratama', 'Informatika', 2022, 7),
-(5, 'Algoritma dan Struktur Data', 'Slamet Riyadi', 'Elex Media Komputindo', 2018, 9),
-(6, 'Pemrograman Java untuk Pemula', 'Agus Setiawan', 'Andi Publisher', 2020, 6),
-(7, 'Pemrograman Python Modern', 'Rizky Kurniawan', 'Informatika', 2021, 11),
-(8, 'Sistem Basis Data', 'Abdul Kadir', 'Andi Publisher', 2017, 5),
-(9, 'Pengantar Jaringan Komputer', 'Wahyu Nugroho', 'Informatika', 2019, 8),
-(10, 'Pemrograman Web Lanjut', 'Fajar Hidayat', 'Elex Media Komputindo', 2022, 10);
-
 -- --------------------------------------------------------
 
 --
@@ -69,13 +57,6 @@ CREATE TABLE `detail_peminjaman` (
 --
 -- Dumping data for table `detail_peminjaman`
 --
-
-INSERT INTO `detail_peminjaman` (`id_detail`, `id_pinjam`, `id_buku`, `jumlah`) VALUES
-(1, 1, 2, 1),
-(2, 2, 8, 6),
-(3, 3, 1, 2),
-(4, 4, 1, 2),
-(5, 5, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -94,14 +75,6 @@ CREATE TABLE `peminjaman` (
 --
 -- Dumping data for table `peminjaman`
 --
-
-INSERT INTO `peminjaman` (`id_pinjam`, `id_user`, `tanggal_pinjam`, `tanggal_kembali`, `status`) VALUES
-(1, 2, '2026-01-12', '2026-01-12', 'dikembalikan'),
-(2, 2, '2026-01-12', '2026-01-12', 'dikembalikan'),
-(3, 2, '2026-01-12', '2026-01-12', 'dikembalikan'),
-(4, 2, '2026-01-12', '2026-01-12', 'dikembalikan'),
-(5, 2, '2026-01-14', '2026-01-14', 'dikembalikan');
-
 -- --------------------------------------------------------
 
 --
