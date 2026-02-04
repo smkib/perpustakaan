@@ -3,132 +3,217 @@ include '../config/auth_user.php';
 include '../config/koneksi.php';
 include '../partials/header_user.php';
 
-/* ambil buku + stok tersedia */
+$id_user = $_SESSION['id_user'];
+
+/* ================= DATA BUKU TERSEDIA ================= */
 $buku = mysqli_query($conn,"
 SELECT 
   b.id_buku,
   b.judul,
-  b.stok - IFNULL(SUM(d.jumlah),0) AS tersedia
+  b.pengarang,
+  (b.stok - IFNULL(SUM(
+    CASE 
+      WHEN p.status='dipinjam' THEN d.jumlah
+      ELSE 0
+    END
+  ),0)) AS tersedia
 FROM buku b
 LEFT JOIN detail_peminjaman d ON b.id_buku=d.id_buku
-LEFT JOIN peminjaman p ON d.id_pinjam=p.id_pinjam AND p.status='dipinjam'
+LEFT JOIN peminjaman p ON d.id_pinjam=p.id_pinjam
 GROUP BY b.id_buku
 HAVING tersedia > 0
 ");
 
+/* ================= SIMPAN PEMINJAMAN ================= */
 $error = "";
-$success = "";
 
-/* proses pinjam */
 if(isset($_POST['pinjam'])){
-
-  $id_user = $_SESSION['id_user'];
-  $buku_id = $_POST['id_buku'];
+  $id_buku = $_POST['id_buku'];
   $jumlah  = $_POST['jumlah'];
 
-  /* validasi stok */
-  foreach($buku_id as $i => $id){
-    $cek = mysqli_fetch_assoc(mysqli_query($conn,"
-      SELECT 
-        b.stok - IFNULL(SUM(d.jumlah),0) AS tersedia
-      FROM buku b
-      LEFT JOIN detail_peminjaman d ON b.id_buku=d.id_buku
-      LEFT JOIN peminjaman p ON d.id_pinjam=p.id_pinjam AND p.status='dipinjam'
-      WHERE b.id_buku='$id'
-      GROUP BY b.id_buku
-    "));
+  $cek = mysqli_fetch_assoc(mysqli_query($conn,"
+    SELECT 
+      (b.stok - IFNULL(SUM(
+        CASE WHEN p.status='dipinjam' THEN d.jumlah ELSE 0 END
+      ),0)) AS tersedia
+    FROM buku b
+    LEFT JOIN detail_peminjaman d ON b.id_buku=d.id_buku
+    LEFT JOIN peminjaman p ON d.id_pinjam=p.id_pinjam
+    WHERE b.id_buku='$id_buku'
+    GROUP BY b.id_buku
+  "));
 
-    if($jumlah[$i] > $cek['tersedia']){
-      $error = "Jumlah pinjaman melebihi stok tersedia";
-      break;
-    }
-  }
-
-  /* simpan jika aman */
-  if($error == ""){
+  if($jumlah > $cek['tersedia']){
+    $error = "Jumlah melebihi stok tersedia";
+  } else {
     mysqli_query($conn,"
       INSERT INTO peminjaman 
-      VALUES (NULL,'$id_user',CURDATE(),NULL,'dipinjam')
+      (id_user,tanggal_pinjam,tanggal_kembali,status)
+      VALUES ('$id_user',CURDATE(),NULL,'dipinjam')
     ");
     $id_pinjam = mysqli_insert_id($conn);
 
-    foreach($buku_id as $i => $id){
-      mysqli_query($conn,"
-        INSERT INTO detail_peminjaman 
-        VALUES (NULL,'$id_pinjam','$id','$jumlah[$i]')
-      ");
-    }
+    mysqli_query($conn,"
+      INSERT INTO detail_peminjaman 
+      (id_pinjam,id_buku,jumlah)
+      VALUES ('$id_pinjam','$id_buku','$jumlah')
+    ");
 
-    $success = "Peminjaman berhasil disimpan";
+    header("Location: peminjaman.php");
+    exit;
   }
 }
+
+/* ================= DATA RIWAYAT USER ================= */
+$pinjam = mysqli_query($conn,"
+SELECT 
+  p.id_pinjam,
+  b.judul,
+  d.jumlah,
+  p.tanggal_pinjam,
+  p.tanggal_kembali,
+  p.status
+FROM peminjaman p
+JOIN detail_peminjaman d ON p.id_pinjam=d.id_pinjam
+JOIN buku b ON d.id_buku=b.id_buku
+WHERE p.id_user='$id_user'
+ORDER BY p.id_pinjam DESC
+");
 ?>
 
 <div class="container my-4">
 
-  <h4 class="fw-semibold mb-3">Peminjaman Buku</h4>
+<h4 class="fw-semibold mb-3">Peminjaman Buku</h4>
 
-  <?php if($error){ ?>
-    <div class="alert alert-danger"><?= $error ?></div>
-  <?php } ?>
+<?php if($error){ ?>
+<div class="alert alert-danger"><?= $error ?></div>
+<?php } ?>
 
-  <?php if($success){ ?>
-    <div class="alert alert-success"><?= $success ?></div>
-  <?php } ?>
+<form method="post" class="card shadow-sm border-0 rounded-4 p-4 mb-4">
 
-  <form method="post" class="card shadow-sm border-0 rounded-4 p-4">
-
-    <div id="buku-wrapper">
-
-      <div class="row mb-3 buku-item">
-        <div class="col-md-7">
-          <label class="form-label">Judul Buku</label>
-          <select name="id_buku[]" class="form-select" required>
-            <?php
-            mysqli_data_seek($buku,0);
-            while($b=mysqli_fetch_assoc($buku)){
-              echo "<option value='$b[id_buku]'>
-                      $b[judul] (Stok: $b[tersedia])
-                    </option>";
-            }
-            ?>
-          </select>
-        </div>
-
-        <div class="col-md-3">
-          <label class="form-label">Jumlah</label>
-          <input type="number" name="jumlah[]" class="form-control" min="1" required>
-        </div>
-
-        
-      </div>
-
-    </div>
-
-    
-
-    <div class="d-grid">
-      <button name="pinjam" class="btn btn-dark btn-lg">
-        Simpan Peminjaman
+  <div class="mb-3">
+    <label class="form-label">Buku</label>
+    <div class="input-group">
+      <input type="text" id="judul" class="form-control" readonly required>
+      <button type="button" class="btn btn-outline-secondary"
+        data-bs-toggle="modal" data-bs-target="#modalBuku">
+        Cari Buku
       </button>
     </div>
+    <input type="hidden" name="id_buku" id="id_buku">
+    <small id="info" class="text-muted"></small>
+  </div>
 
-  </form>
+  <div class="mb-3">
+    <label class="form-label">Jumlah</label>
+    <input type="number" name="jumlah" id="jumlah"
+      class="form-control" min="1" required>
+  </div>
+
+  <button name="pinjam" class="btn btn-dark w-100">
+    Simpan Peminjaman
+  </button>
+</form>
+
+<!-- ================= RIWAYAT ================= -->
+<div class="card shadow-sm border-0 rounded-4">
+<div class="card-body">
+
+<h5 class="mb-3">Riwayat Peminjaman</h5>
+
+<table class="table table-hover">
+<thead class="table-light">
+<tr>
+  <th>Judul Buku</th>
+  <th>Jumlah</th>
+  <th>Tanggal Pinjam</th>
+  <th>Tanggal Kembali</th>
+  <th>Status</th>
+</tr>
+</thead>
+<tbody>
+<?php while($p=mysqli_fetch_assoc($pinjam)){ ?>
+<tr>
+  <td><?= $p['judul'] ?></td>
+  <td><?= $p['jumlah'] ?></td>
+  <td><?= $p['tanggal_pinjam'] ?></td>
+  <td><?= $p['tanggal_kembali'] ?: '-' ?></td>
+  <td>
+    <span class="badge <?= $p['status']=='dipinjam'?'bg-warning text-dark':'bg-success' ?>">
+      <?= ucfirst($p['status']) ?>
+    </span>
+  </td>
+</tr>
+<?php } ?>
+</tbody>
+</table>
+
+</div>
+</div>
+
+</div>
+
+<!-- ================= MODAL BUKU ================= -->
+<div class="modal fade" id="modalBuku" tabindex="-1">
+<div class="modal-dialog modal-lg modal-dialog-centered">
+<div class="modal-content">
+
+<div class="modal-header">
+<h5 class="modal-title">Daftar Buku</h5>
+<button class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="p-3">
+<input type="text" id="searchBuku"
+ class="form-control"
+ placeholder="Cari judul / pengarang">
+</div>
+
+<div class="modal-body p-0">
+<table class="table table-hover mb-0">
+<tbody>
+<?php while($b=mysqli_fetch_assoc($buku)){ ?>
+<tr class="buku-row">
+<td><?= $b['judul'] ?></td>
+<td><?= $b['pengarang'] ?></td>
+<td><?= $b['tersedia'] ?></td>
+<td>
+<button type="button"
+ class="btn btn-sm btn-primary"
+ data-bs-dismiss="modal"
+ onclick="pilihBuku(
+   '<?= $b['id_buku'] ?>',
+   '<?= $b['judul'] ?>',
+   '<?= $b['pengarang'] ?>',
+   '<?= $b['tersedia'] ?>'
+ )">
+ Pilih
+</button>
+</td>
+</tr>
+<?php } ?>
+</tbody>
+</table>
+</div>
+
+</div>
+</div>
 </div>
 
 <script>
-document.getElementById('tambah').onclick = function(){
-  let item = document.querySelector('.buku-item').cloneNode(true);
-  item.querySelectorAll('input').forEach(i => i.value = '');
-  document.getElementById('buku-wrapper').appendChild(item);
-};
+function pilihBuku(id, judul, pengarang, stok){
+  document.getElementById('id_buku').value = id;
+  document.getElementById('judul').value = judul;
+  document.getElementById('jumlah').max = stok;
+  document.getElementById('info').innerHTML =
+    'Pengarang: ' + pengarang + ' | Stok tersedia: ' + stok;
+}
 
-document.addEventListener('click', function(e){
-  if(e.target.classList.contains('remove')){
-    if(document.querySelectorAll('.buku-item').length > 1){
-      e.target.closest('.buku-item').remove();
-    }
-  }
+document.getElementById('searchBuku').addEventListener('keyup', function(){
+  var k = this.value.toLowerCase();
+  document.querySelectorAll('.buku-row').forEach(function(r){
+    r.style.display = r.innerText.toLowerCase().includes(k) ? '' : 'none';
+  });
 });
 </script>
 

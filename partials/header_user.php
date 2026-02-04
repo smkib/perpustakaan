@@ -38,7 +38,8 @@
       <ul class="navbar-nav ms-auto align-items-center">
         <li class="nav-item"><a class="nav-link" href="dashboard.php">Dashboard</a></li>
         <li class="nav-item"><a class="nav-link" href="pinjam.php">Pinjam</a></li>
-        <li class="nav-item"><a class="nav-link" href="kembali.php">Kembali</a></li>
+        <!-- <li class="nav-item"><a class="nav-link" href="kembali.php">Kembali</a></li>
+         -->
 
         <li class="nav-item ms-3">
           <a class="btn btn-outline-light btn-sm px-3 rounded-pill" href="../logout.php">
