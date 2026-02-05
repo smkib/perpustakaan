@@ -59,7 +59,7 @@ if(isset($_POST['pinjam'])){
       VALUES ('$id_pinjam','$id_buku','$jumlah')
     ");
 
-    header("Location: peminjaman.php");
+    header("Location: pinjam.php");
     exit;
   }
 }
