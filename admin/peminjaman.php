@@ -334,12 +334,12 @@ function pilihAnggota(id, nama){
 }
 
 /* validasi jumlah */
-document.getElementById('jumlah').addEventListener('input', function(){
+/*document.getElementById('jumlah').addEventListener('input', function(){
   if(this.value > this.max){
     alert('Jumlah melebihi stok');
     this.value = this.max;
   }
-});
+});*/
 
 /* search buku */
 document.getElementById('searchBuku').addEventListener('keyup', function(){
